@@ -163,10 +163,12 @@ void readRegisters(byte addr2Read, int bytes2Read, byte * dest){
   byte errorBit;
   TinyWireM.beginTransmission(MMA8452_ADDRESS);
   TinyWireM.write(addr2Read);
-  errorBit = TinyWireM.endTransmission(false);
+  TinyWireM.endTransmission(false);
+  /*
   if(errorBit != 0){
     fastBlink();
   }
+  */
   TinyWireM.requestFrom(MMA8452_ADDRESS, bytes2Read); //Ask for bytes, once done, bus is released by default  
   
   while(TinyWireM.available() < bytes2Read); //Hang out until we get the # of bytes we expect
@@ -182,18 +184,19 @@ byte readRegister(byte addr2Read){
   TinyWireM.beginTransmission(MMA8452_ADDRESS);
   TinyWireM.write(addr2Read);
   errorBit = TinyWireM.endTransmission(false); // endTransmission doesn't take any arguement
+  /*
   if(errorBit != 0){
     fastBlink();
   }
+  */
   TinyWireM.requestFrom(MMA8452_ADDRESS, 1);
  
-  while(!TinyWireM.available()){
-    accelData = TinyWireM.read();
-  }
+  while(!TinyWireM.available());
+  accelData = TinyWireM.read();
   if(accelData != 0x2A){
     fastBlink();
   }
-  return TinyWireM.read();
+  return accelData;
 }
 
 // Writes a single byte (dataToWrite) into addressToWrite
