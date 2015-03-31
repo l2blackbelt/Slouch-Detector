@@ -28,7 +28,9 @@ void setup() {
   pinMode(LED3, OUTPUT);
   
   TinyWireM.begin();
-  initAccel();  
+  working();
+  initAccel();
+  working();  
   delay(3000);
 }
 
@@ -80,7 +82,7 @@ void readAccelData(int *destination){
 
 void initAccel(){
    byte address = readRegister(WHO_AM_I); // Probe the accel address
-   if(address == CTRL_REG1){ // Device is running and acquiring data
+   if(address == 0x2A){ // Device is running and acquiring data
      working();
    }
    else{
@@ -106,7 +108,6 @@ void initAccel(){
    
    accelActive();
 }
-
 void working(){
    // Blink all LEDs three times
    for(int counter = 0; counter < 3; counter++){
@@ -124,18 +125,18 @@ void error(){
   // Strobing LED
   for(int counter = 0; counter < 3; counter++){
     digitalWrite(LED1, HIGH);
-    delay(500);
+    delay(250);
     digitalWrite(LED2, HIGH);
-    delay(500);
+    delay(250);
     digitalWrite(LED3, HIGH);
-    delay(500);
+    delay(250);
     
     digitalWrite(LED1, LOW);
-    delay(500);
+    delay(250);
     digitalWrite(LED2, LOW);
-    delay(500);
+    delay(250);
     digitalWrite(LED3, LOW);
-    delay(500);    
+    delay(250);    
   } 
 }
 // Sets the MMA8452 to standby mode. It must be in standby to change most register settings
@@ -148,40 +149,57 @@ void accelActive(){
   byte address = readRegister(CTRL_REG1);
   writeRegister(CTRL_REG1, address | 0x01); //Set the active bit to begin detection
 }
-
+void fastBlink(){ // Error during readRegister(s)
+  while(true){
+    digitalWrite(LED1, HIGH);
+    delay(100);
+    
+    digitalWrite(LED1, LOW);
+    delay(100);
+  
+  }  
+}
 void readRegisters(byte addr2Read, int bytes2Read, byte * dest){
+  byte errorBit;
   TinyWireM.beginTransmission(MMA8452_ADDRESS);
-  TinyWireM.send(addr2Read);
-  TinyWireM.endTransmission();
-
+  TinyWireM.write(addr2Read);
+  errorBit = TinyWireM.endTransmission(false);
+  if(errorBit != 0){
+    fastBlink();
+  }
   TinyWireM.requestFrom(MMA8452_ADDRESS, bytes2Read); //Ask for bytes, once done, bus is released by default  
   
   while(TinyWireM.available() < bytes2Read); //Hang out until we get the # of bytes we expect
   
   for(int x = 0; x < bytes2Read; x++){
-    dest[x] = TinyWireM.receive();
+    dest[x] = TinyWireM.read();
   } 
 }
 
 byte readRegister(byte addr2Read){
-  // byte accelData;
-  
+  byte accelData;
+  byte errorBit;
   TinyWireM.beginTransmission(MMA8452_ADDRESS);
-  TinyWireM.send(addr2Read);
-  TinyWireM.endTransmission(); // endTransmission doesn't take any arguement
-  
+  TinyWireM.write(addr2Read);
+  errorBit = TinyWireM.endTransmission(false); // endTransmission doesn't take any arguement
+  if(errorBit != 0){
+    fastBlink();
+  }
   TinyWireM.requestFrom(MMA8452_ADDRESS, 1);
  
-  while(!TinyWireM.available());
-  // accelData = TinyWireM.receive();
-
-  return TinyWireM.receive();
+  while(!TinyWireM.available()){
+    accelData = TinyWireM.read();
+  }
+  if(accelData != 0x2A){
+    fastBlink();
+  }
+  return TinyWireM.read();
 }
 
 // Writes a single byte (dataToWrite) into addressToWrite
 void writeRegister(byte addr2Write, byte data2Write){
   TinyWireM.beginTransmission(MMA8452_ADDRESS);
-  TinyWireM.send(addr2Write);
-  TinyWireM.send(data2Write);
+  TinyWireM.write(addr2Write);
+  TinyWireM.write(data2Write);
   TinyWireM.endTransmission();
 }

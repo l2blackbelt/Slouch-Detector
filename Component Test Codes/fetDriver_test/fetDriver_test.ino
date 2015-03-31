@@ -11,5 +11,5 @@ void loop() {
   digitalWrite(fetPin, HIGH);
   delay(50);
   digitalWrite(fetPin, LOW);
-  delay(50);
+  delay(25);
 }
